@@ -10,6 +10,9 @@ ClientAccesToken='CY7q7ubEoVaUdJXMmlAkRPYkB86sK4kK8S33H6cV5ATnrIrIN3TBZkM-e94h0f
 headers={"Authorization":'Bearer '+ClientAccesToken}
 base_url = 'https://api.genius.com'
 
+def get_lyrics(artistname,songname):
+    pass
+
 def req_content(url):
     headers={
         'content-type':'content-type: text/html; charset=utf-8',
@@ -111,7 +114,7 @@ def retrieve_fullTitle(full_title):
             'title':title}
 def retrieve_song(title=str,artist=str):
     result=searchSong(title,artist).json()['response']['hits'][0]['result']
-    
+    print(result)
     song_id=result['id']
     print(song_id)
     song_info=songInfo(song_id)
@@ -155,16 +158,60 @@ def retrieve_song(title=str,artist=str):
            'album_artist':album_artist,
            }
 
+class GeniusApi():
+    def __init__(self):
+        ClientAccesToken = 'CY7q7ubEoVaUdJXMmlAkRPYkB86sK4kK8S33H6cV5ATnrIrIN3TBZkM-e94h0fyW'
+        headers = {"Authorization": 'Bearer ' + ClientAccesToken}
+        self.base_url = 'https://api.genius.com'
+
+    def response(self,endpoint):
+        print(self.base_url+endpoint)
+        response=requests.get(self.base_url+endpoint,headers=headers)
+        return response
+
+    def get_lyrics(self,artist_name,song_name):
+        endpoint = f"/{artist_name.replace(' ','-')}-{song_name.replace(' ','-')}-lyrics"
+        lyrics=self.retrieve_lyrics(endpoint)
+        print(type(lyrics))
+        return lyrics
+
+
+    def retrieve_lyrics(self,lPath):
+        print(lPath)
+        url = 'https://genius.com' + lPath
+        headers = {
+            'content-type': 'content-type: text/html; charset=utf-8',
+        }
+        while True:
+            page = requests.get(url,headers=headers)
+            if not page.ok:
+                print("Invalid Url")
+                return 0
+            soup = BeautifulSoup(page.text, 'html.parser')
+            try:
+                lyrics = soup.find_all('div', {'class': 'lyrics'})[0].text
+
+                #extract album name
+                header = soup.find_all('div',{'class':'header_with_cover_art-primary_info'})
+                album = header[0].find_all('span',{'class':'metadata_unit-info'})[-1].text
+
+                return {'lyrics':lyrics.strip(),'album_name': album}
+            except Exception as ec:
+                print(ec)
+
+
 if __name__=='__main__':
-    artist="Bitter Feat. Mulatto"
-    title="Queen Naija"
-    t=retrieve_song(title=title,artist=artist)
-    for i in t:
-        print(f'{i}: {t[i]}')
+    artist="justin bieber"
+    title="intentions"
+    g=GeniusApi()
+    l=g.get_lyrics(artist,title)
+    # print(l)
+    # for i in t:
+    #     print(f'{i}: {t[i]}')
     # res=searchSong(title,artist)
     # res=albumInfo(104614)
     # print(json.dumps(res.json()['response']['hits'][0]['result'],indent=4))
-    # print(res.json())
+    # print(json.dumps(res.json(),indent=4))
 
     
     

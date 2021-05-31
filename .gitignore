@@ -1,0 +1,4 @@
+.idea
+.vscode
+*.spec
+__pycache__
