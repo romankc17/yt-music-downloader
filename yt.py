@@ -56,10 +56,10 @@ class MusicDownloader:
         print('*******Finished Parsing***********')
 
         audio_mp4 = yt.streams.filter(only_audio=True).first().download(self.path)
-        mp3_filename = os.path.join(self.path, "music-" + len(title) + ".mp3")
+        mp3_filename = os.path.join(self.path, "music-" + str(len(title)) + ".mp3")
         audio = self.mp4_to_mp3(audio_mp4, mp3_filename)
         os.rename(mp3_filename, os.path.join(self.path, title + ".mp3"))
-        return mp3_filename
+        return os.path.join(self.path, title + ".mp3")
 
     # return all the video urls from playlist
     def downloadAudioPlaylist(self):
@@ -67,6 +67,7 @@ class MusicDownloader:
         return p.video_urls
 
     def set_metadata(self, fileName, song_info):
+        print(fileName)
         audioFile = eyed3.load(fileName)
 
         title = song_info['name']

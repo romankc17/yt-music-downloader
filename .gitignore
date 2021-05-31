@@ -2,3 +2,5 @@
 .vscode
 *.spec
 __pycache__
+*.pyi
+*.pyc
