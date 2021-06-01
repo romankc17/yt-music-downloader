@@ -49,20 +49,23 @@ class SpotifyApi:
         ytTitle = ytTitle.lower()
 
         # to see if it is remix
-        pattern = re.compile(r'(\(|\[).*[remix](\)|\])')
+        pattern = re.compile(r'(\(|\[).*remix(\)|\])')
         m = pattern.search(ytTitle)
         if m:
             keys.append(m[0])
+            ytTitle = ytTitle.replace(m[0], '')
+
+        # pattern to get brackets
+        pattern = re.compile(r'(\(|\[)[\w\s\.\?\!:\|-]*(\)|\])')
+        match = pattern.finditer(ytTitle)
+        if match:
+            for m in match:
+                print(m)
+                ytTitle = ytTitle.replace(m.group(0), '')
 
         def foo(key):
             # pattern to get featured artist
-            pattern = re.compile(r'\s(ft\.?|featuring)\s.*')
-            match = pattern.search(key)
-            if match:
-                key = key.replace(match[0], '')
-
-            # pattern to get brackets
-            pattern = re.compile(r'(\(|\[).*(\)|\])')
+            pattern = re.compile(r'\s(ft\.?|featuring|feature|feat\.?)\s.*')
             match = pattern.search(key)
             if match:
                 key = key.replace(match[0], '')
@@ -82,14 +85,15 @@ class SpotifyApi:
             keys.append(key.strip())
 
         # partition of ytTitle
-        pattern = re.compile(r'(.*)(-|\||~)(.*)')
+        pattern = re.compile(r'(^[\w\s$&\.\(\)\[\]!:+\?-]*)\s(-|\||~)\s([\w\s$&\.\(\)\[\]\'\"\?]*)')
         match = pattern.findall(ytTitle)
+        print(match)
         if match:
             for key in match[0][::2]:
                 foo(key)
         else:
             foo(ytTitle)
-        print(keys)
+        return keys
         q = ' '.join(keys)
         return q
 
@@ -101,22 +105,41 @@ class SpotifyApi:
         }
         res = requests.get(search_endpoint, params=params, headers=self.headers).json()
         return res
-        result = res['tracks']
 
     def get_first_search(self, q):
-        print(f'Searching: {q}')
-        result = self.search(q)['tracks']['items'][0]
+        items = self.search(q)['tracks']['items']
+        if not items:
+            return {
+                'album_name': '',
+                'album_artists': '',
+                'images': '',
+                'artists': '',
+                'name': "",
+                'album_type': '',
+                'artist_url': '',
+                'track_num': '',
+                'duration': '',
+                'release_date': '',
+                'lyrics': ''
+            }
+        result = items[0]
         album_artists = [artist['name'] for artist in result['album']['artists']]
         album_name = result['album']['name']
         info = self.get_lyrics(result['name'], album_artists)
         lyrics = ''
         if info:
-            album_name = info['album_name']
             lyrics = info['lyrics']
+            if info['album']:
+                album_name=info['album']['name']
+                album_artists=[info['album']['artist']]
+        images=result['album']['images']
         return {
             'album_name': album_name,
             'album_artists': album_artists,
-            'images': result['album']['images'],
+            'images': {
+                "high":images[0],
+                "low":images[2]
+            },
             'artists': [artist['name'] for artist in result['artists']],
             'name': result['name'],
             'album_type': result['album']['album_type'],
@@ -135,6 +158,7 @@ class SpotifyApi:
             title = name.replace(match[0], '').strip()
         else:
             title = name.strip()
+
         if len(album_artists) <= 2:
             artist = ' and '.join(album_artists)
         elif len(album_artists) > 2:
@@ -147,10 +171,9 @@ class SpotifyApi:
 
 if __name__ == '__main__':
     api = SpotifyApi()
-    ytTitle = 'BTS (방탄소년단) \'Butter\' Official MV (Hotter Remix)'
+    ytTitle = 'Nathan Dawe x Anne-Marie x MoStack - Way Too Long [Official Video]'
     q = api.purify_ytTitle(ytTitle)
     print(q)
     # print(json.dumps(api.search(q)['tracks']['items'][0],indent=4))
-    # print(api.get_first_search(q))
+    print(api.get_first_search(q))
 
-    title = "BTS (방탄소년단) 'Butter' Official MV (Hotter Remix)"

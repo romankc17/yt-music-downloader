@@ -14,6 +14,11 @@ import pygame
 from yt import *
 from spotifyApi import *
 from spotifyApi import SpotifyApi
+from youtubeApi import YoutubeApi
+
+youtubeApi = YoutubeApi()
+musicDownloader = MusicDownloader()
+
 spotiApi = SpotifyApi()
 
 MAX_FONT = ("Verdana", 18)
@@ -55,7 +60,6 @@ def navBar(frame):
                       command=lambda: frame.controller.show_frame(StartPage))
     song.pack(side='left', )
     song.photo = image
-
 
     image = resize_image('discover.png', 25, 25)
     song = ttk.Button(navFrame, text='DISCOVER', style='flat.TButton',
@@ -134,7 +138,7 @@ class StartPage(ttk.Frame):
         s1 = ttk.Style()
         s1.configure('F1.TFrame', background='#ccffdd', pady=10, padx=5)
         navBar(self)
-        self.container = ttk.Frame(self,style='F1.TFrame' )
+        self.container = ttk.Frame(self, style='F1.TFrame')
         self.container.pack(side='left', fill='both', expand=True, )
         self.canvasFrame()
 
@@ -243,7 +247,7 @@ class DownloadPage(ttk.Frame):
 
         self.controller = controller
         style = ttk.Style()
-        style.configure('uF.TFrame',background='green')
+        style.configure('uF.TFrame', background='green')
         self.upperFrame = ttk.Frame(self.container, style='uF.TFrame')
         self.upperFrame.pack(side='top', fill='x', padx=2, ipady=10)
         self.lowerFrame = tk.Frame(self.container)
@@ -254,13 +258,13 @@ class DownloadPage(ttk.Frame):
                               command=lambda: threading.Thread(target=self.parseUrl).start())
         pasteBtn.pack(side='left', padx=5, ipady=3)
 
-        self.i=100
+        self.i = 100
         # for _ in range(10):
         #     self.eachDownloadFrame()
 
     # # creating a scrollable frame to show dowloads
     def createDownloadFrame(self):
-        canvas = tk.Canvas(self.lowerFrame,bg='#80ff80')
+        canvas = tk.Canvas(self.lowerFrame, bg='#80ff80')
         canvas.pack(side='left', expand=True, fill='both')
 
         vs = tk.Scrollbar(self.lowerFrame, orient='vertical', command=canvas.yview)
@@ -285,128 +289,131 @@ class DownloadPage(ttk.Frame):
         canvas.configure(scrollregion=canvas.bbox("all"))
         self.downloadFrame = downloadFrame
 
-    def retrievingText(self,master):
-        font = tkFont.Font(family='Arial',size=16,weight='bold')
+    def retrievingText(self, master):
+        font = tkFont.Font(family='Arial', size=16, weight='bold')
         text = 'Retrieving Information.......'
 
-        t=tk.Text(master,bg=self.download_background,fg='white')
-        t.insert(tk.INSERT,text)
+        t = tk.Text(master, bg=self.download_background, fg='white')
+        t.insert(tk.INSERT, text)
         t.configure(font=font)
         t.pack()
 
-    def song_info_frame(self,master,yt_title,song_info):
-
-        leftFrame = tk.Frame(master,width=64,height=64,bg=self.download_background)
-        rightFrame = tk.Frame(master,height=64,bg=self.download_background)
+    def song_info_frame(self, master, yt_title, song_info):
+        leftFrame = tk.Frame(master, width=64, height=64, bg=self.download_background)
+        rightFrame = tk.Frame(master, height=64, bg=self.download_background)
 
         leftFrame.pack(side='left')
-        rightFrame.pack(side='right',expand=True,fill='both',)
+        rightFrame.pack(side='right', expand=True, fill='both', )
 
         # tk.Grid.columnconfigure(master,0,weight=1)
         # # tk.Grid.columnconfigure(master,0,weight=1)
         #
-        thumbnail_url = song_info['images'][2]['url']
+        thumbnail_url = song_info['images']['low']['url']
         image = requests.get(thumbnail_url)
         image_bits = BytesIO(image.content)
         im = PIL.Image.open(image_bits)
         image = ImageTk.PhotoImage(im)
-        labelImage = tk.Label(leftFrame,image=image,bg=self.download_background)
+        labelImage = tk.Label(leftFrame, image=image, bg=self.download_background)
         labelImage.photo = image
         labelImage.pack()
         labelImage.pack_propagate(0)
         #
         font = tkFont.Font(family='Arial', size=16, weight='bold')
-        t = tk.Label(rightFrame,text=yt_title,bg=self.download_background,fg='white',font=font)
-        t.grid(row=0,column=0,columnspan=3)
+        t = tk.Label(rightFrame, text=yt_title, bg=self.download_background, fg='white', font=font)
+        t.grid(row=0, column=0, columnspan=3)
 
-        titleLabel = tk.Label(rightFrame,text=f"Title: {song_info['name']}",bg="white")
-        titleLabel.grid(row=1,column=0,padx=5)
+        titleLabel = tk.Label(rightFrame, text=f"Title: {song_info['name']}", bg="white")
+        titleLabel.grid(row=1, column=0, padx=5)
 
-        artistLabel = tk.Label(rightFrame,text = f"Artist: {';'.join(song_info['artists'])}",bg='white')
-        artistLabel.grid(row=1,column=1,padx=5)
+        artistLabel = tk.Label(rightFrame, text=f"Artist: {';'.join(song_info['artists'])}", bg='white')
+        artistLabel.grid(row=1, column=1, padx=5)
 
-        albumLabel = tk.Label(rightFrame,text=f"Album: {song_info['album_name']}",bg='white')
-        albumLabel.grid(row=1,column=2,padx=5)
+        albumLabel = tk.Label(rightFrame, text=f"Album: {song_info['album_name']}", bg='white')
+        albumLabel.grid(row=1, column=2, padx=5)
 
-        #progress bar
-        bar = self.downloadBar(rightFrame,length=300)
-        bar.grid(row=2,column=1,columnspan=3,sticky='ns')
+        # progress bar
+        bar = self.downloadBar(rightFrame, length=300)
+        bar.grid(row=2, column=1, columnspan=3, sticky='ns')
 
         return bar
 
-
-    def downloadBar(self,master,length=int):
-        bar = ttk.Progressbar(master,orient=tk.HORIZONTAL,length=length)
+    def downloadBar(self, master, length=int):
+        bar = ttk.Progressbar(master, orient=tk.HORIZONTAL, length=length)
         return bar
-
 
     def eachDownloadFrame(self):
         self.download_background = 'blue'
         s = ttk.Style()
-        s.configure('dFrame.TFrame',background=self.download_background)
-        f=ttk.Frame(self.downloadFrame,style='dFrame.TFrame',height=64)
-        tk.Grid.columnconfigure(self.downloadFrame,0,weight=1)
-        tk.Grid.columnconfigure(f,0,weight=1)
-        f.grid(row=self.i,column=0,pady=1,sticky='nsew')
+        s.configure('dFrame.TFrame', background=self.download_background)
+        f = ttk.Frame(self.downloadFrame, style='dFrame.TFrame', height=64)
+        tk.Grid.columnconfigure(self.downloadFrame, 0, weight=1)
+        tk.Grid.columnconfigure(f, 0, weight=1)
+        f.grid(row=self.i, column=0, pady=1, sticky='nsew')
         # f.pack_propagate(0)
 
         # self.retrievingText(f)
         # tk.Label(f,text='Retrieving Information',bg='blue').grid(row=0,column=0)
-        self.i-=1
+        self.i -= 1
         return f
+
+
+    def downloadMusic(self,url,video_id):
+        #getting video info from youtube api
+        video_info = youtubeApi.video_info(video_id)
+        yt_title = video_info['title']
+
+        # Extract the search keys from yt title
+        keys = spotiApi.purify_ytTitle(yt_title)
+        q= ' '.join(keys)
+
+        # using search key to search song in spotify
+        print("Searching q: "+q)
+        song_info = spotiApi.get_first_search(q)
+
+        # set the title as youtube video name if not found searching in spotify
+        if song_info['name'].strip() == "":
+            song_info['name'] = yt_title
+            song_info['images'] = {
+                "high": video_info['thumbnails']["standard"],
+                "low": video_info['thumbnails']["default"]
+            }
+
+        #Create download frame and label song info
+        f = self.eachDownloadFrame()
+        f.grid_propagate(0)
+
+        # make a frame with song info and return progress bar
+        bar = self.song_info_frame(f, yt_title, song_info)
+
+        filename=' X '.join(song_info['artists'])+" - "+song_info['name']
+        audio_file = musicDownloader.downlod(url,filename)
+        bar['value'] += 50
+        musicDownloader.set_metadata(audio_file, song_info)
+        bar['value'] += 50
 
     def parseUrl(self):
         url = pyperclip.paste().strip()  # url <- pasted url
 
-        #initialize Downlaod object with yt url
-        musicDownloader = MusicDownloader(url)
-        link_type = musicDownloader.link_type()
-        if not link_type['type']: #return types of link 0 if is invalid url
+        # initialize Downlaod object with yt url
+        link_type = musicDownloader.link_type(url)
+        if not link_type['type']:  # return types of link 0 if is invalid url
             self.invalidPopUp("Invalid Url")
             return 0
-        print(link_type)
 
-        #if the url is for a music video only
-        if link_type['type']==2:
+        # if the url is for a music video only
+        if link_type['type'] == 2:
             video_id = link_type['video_id']
-
-            #to get youtube music video title
-            yt_title = musicDownloader.get_title(video_id)
-
-            #get the search key from yt title
-            q=spotiApi.purify_ytTitle(yt_title)
-
-            #using search key to search song in spotify
-            song_info = spotiApi.get_first_search(q)
-
-            f=self.eachDownloadFrame()
-            f.grid_propagate(0)
-            # time.sleep(5)
-            # for widgets in f.winfo_children():
-            #     widgets.destroy()
-
-            #make a frame with song info and return progress bar
-            bar = self.song_info_frame(f,yt_title,song_info)
-
-            audio_file=musicDownloader.downlod(yt_title)
-            print(audio_file)
-            bar['value']+=50
-            musicDownloader.set_metadata(audio_file,song_info)
-            bar['value']+=50
-            return 0
-
+            self.downloadMusic(url,video_id)
+            return
 
         # if the url is for playlist only
         elif link_type['type'] == 3:
             print("Downloading Playlist")
-            urls = downloadAudioPlaylist(url)
+            urls = musicDownloader.get_playlist_urls(url)
             tl = []
             for url in urls:
-                progressBar = ttk.Progressbar(self.downloadFrame, orient='horizontal',
-                                              length=300, mode='indeterminate')
-                progressBar.pack(side='top', anchor='nw', pady=10, padx=5)
-                progressBar.start(10)
-                t = threading.Thread(target=lambda: self.download(url, progressBar))
+                video_id=musicDownloader.link_type(url)['video_id']
+                t = threading.Thread(target=lambda: self.downloadMusic(url, video_id))
                 t.start()
                 tl.append(t)
             for t in tl:
@@ -427,10 +434,9 @@ class DownloadPage(ttk.Frame):
                 self.popupdownloadOption(url, result)
 
         else:
-            print('here')
             progressBar = ttk.Progressbar(self.downloadFrame, orient='horizontal',
                                           length=300, mode='indeterminate')
-            progressBar.grid(row=self.i,column=0)
+            progressBar.grid(row=self.i, column=0)
             self.i += 1
             progressBar.start(10)
             self.download(url, progressBar)
@@ -485,70 +491,6 @@ class DownloadPage(ttk.Frame):
             self.download(url, progressBar)
             return
 
-    def download(self, url, progressBar):
-        try:
-            for _ in range(3):
-                yt = parseUrl(url)
-
-                break
-        except Exception as ec:
-            # progressBar.stop()
-            # progressBar.destroy()
-            l = tk.Label(self.container, text=ec, bg='red', fg='white')
-            l.pack(side='top', anchor='nw', pady=10, padx=5)
-            return 0
-
-        if fileExist(getPath(yt.title + '.mp3')):
-            print("File Already Exist")
-            progressBar.stop()
-            progressBar.destroy()
-            l = tk.Label(self.container, text='File Already Exist', bg='red',
-                         fg='white', font=MAX_FONT)
-            l.pack(side='top', anchor='nw', padx=5, ipadx=50, pady=5)
-            l.after(3000, l.destroy)
-            return 0
-        progressBar.stop()
-        progressBar.configure(mode='determinate')
-        progressBar['value'] = 0
-
-        print('*******Downloading Audio***********')
-
-        defaultFileName = yt.streams.first().default_filename
-
-        audioFileName = defaultFileName.replace(' ', '_')
-        audioFilePath = getPath(audioFileName)
-
-        # getting streams of only audio with highest res
-        audio = yt.streams.filter(only_audio=True).first().download(dPath)
-        progressBar['value'] += 15
-
-        # Renaming and deleting if file with that name exist
-        if fileExist(audioFilePath):
-            os.remove(audioFilePath)
-        os.rename(audio, audioFilePath)
-        progressBar['value'] += 5
-        # convert mp4 to mp3
-        mp3File = getPath(yt.title + '.mp3')
-        print('######Converting to mp3########')
-        oldFile = audioFilePath
-        newFile = mp3File
-        toMp3(oldFile, newFile)
-        print('######Converted########')
-
-        progressBar['value'] += 25
-
-        print('######Setting Metadata########')
-        setMeta(newFile, yt.title)
-        print('######Done Setting########')
-
-        progressBar['value'] += 55
-
-        # # increasing volume level
-        # _fName=getPath(yt.title+".mp3").replace(' ','_')
-        # subprocess.run(f'ffmpeg -i {mp3File} -filter:a "volume=2" {_fName}')
-        # fName=yt.title+".mp3"
-        # print(fName)
-        # os.rename(_fName,fName)
 
 
 class DiscoverPage(ttk.Frame):
