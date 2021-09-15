@@ -6,7 +6,9 @@ from geniusApi import GeniusApi
 
 geniusApi = GeniusApi()
 
-
+"""
+Extract the song info from the spotify Api
+"""
 class SpotifyApi:
     def __init__(self):
         # Authorization
@@ -30,7 +32,8 @@ class SpotifyApi:
             'grant_type': 'client_credentials',
         }
         token_headers = {
-            'Authorization': f'Basic {client_creds_b64.decode()}'  # Basic <base64 encoded client_id:client_secret>
+            # Basic <base64 encoded client_id:client_secret>
+            'Authorization': f'Basic {client_creds_b64.decode()}'
         }
 
         r = requests.post(token_url, data=token_data, headers=token_headers)
@@ -85,7 +88,7 @@ class SpotifyApi:
             keys.append(key.strip())
 
         # partition of ytTitle
-        pattern = re.compile(r'(^[\w\s$&\.\(\)\[\]!:+\?-]*)\s(-|\||~)\s([\w\s$&\.\(\)\[\]\'\"\?]*)')
+        pattern = re.compile(r'(^[\w\s$&\.\(\)\[\]!:+\?]*)\s(-|\||~)\s([\w\s$&\.\(\)\[\]\'\"\?]*)')
         match = pattern.findall(ytTitle)
         print(match)
         if match:
@@ -98,7 +101,7 @@ class SpotifyApi:
         return q
 
     def search(self, q):
-        search_endpoint = self.base_url + f"/v1/search"
+        search_endpoint = self.base_url + "/v1/search"
         params = {
             'q': q,
             'type': 'track,artist,album'
@@ -130,15 +133,15 @@ class SpotifyApi:
         if info:
             lyrics = info['lyrics']
             if info['album']:
-                album_name=info['album']['name']
-                album_artists=[info['album']['artist']]
-        images=result['album']['images']
+                album_name = info['album']['name']
+                album_artists = [info['album']['artist']]
+        images = result['album']['images']
         return {
             'album_name': album_name,
             'album_artists': album_artists,
             'images': {
-                "high":images[0],
-                "low":images[2]
+                "high": images[0],
+                "low": images[2]
             },
             'artists': [artist['name'] for artist in result['artists']],
             'name': result['name'],
@@ -176,4 +179,3 @@ if __name__ == '__main__':
     print(q)
     # print(json.dumps(api.search(q)['tracks']['items'][0],indent=4))
     print(api.get_first_search(q))
-
