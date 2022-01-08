@@ -29,7 +29,7 @@ NORM_FONT = ("Helvetica", 10)
 SMALL_FONT = ("Helvetica", 8)
 
 PATH = 'C:/Users/roman/Music/YtMusics'
-import eyed3
+
 
 
 def list_files():
@@ -42,6 +42,15 @@ def resize_image(path, width, height):
     image = ImageTk.PhotoImage(image)
     return image
 
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 def navBar(frame):
     navFrame = tk.Frame(frame, bg='#66ff99', pady=1, padx=25)
@@ -56,7 +65,7 @@ def navBar(frame):
               background=[('pressed', '!disabled', '#66ff99'), ('active', '#66ff99')]
               )
 
-    image = resize_image('headphone.png', 25, 25)
+    image = resize_image(resource_path('headphone.png'), 25, 25)
     song = ttk.Button(navFrame, text='MY MUSIC', image=image,
                       compound='left', style='flat.TButton',
                       cursor="hand2",
@@ -64,21 +73,21 @@ def navBar(frame):
     song.pack(side='left', )
     song.photo = image
 
-    image = resize_image('discover.png', 25, 25)
+    image = resize_image(resource_path('discover.png'), 25, 25)
     song = ttk.Button(navFrame, text='DISCOVER', style='flat.TButton',
                       image=image, compound='left', cursor="hand2",
                       command=lambda: frame.controller.show_frame(DiscoverPage))
     song.pack(side='left', padx=5)
     song.photo = image
 
-    image = resize_image('downloading.png', 25, 25)
+    image = resize_image(resource_path('downloading.png'), 25, 25)
     song = ttk.Button(navFrame, text='DOWNLOADS', style='flat.TButton',
                       image=image, compound='left', cursor="hand2",
                       command=lambda: frame.controller.show_frame(DownloadPage))
     song.pack(side='left', padx=5)
     song.photo = image
 
-    image = resize_image('search.png', 30, 30)
+    image = resize_image(resource_path('search.png'), 30, 30)
     search_icon = ttk.Button(navFrame, image=image,
                              style='flat.TButton', cursor="hand2")
     search_icon.pack(side='right')
@@ -91,11 +100,12 @@ def navBar(frame):
     navFrame.pack(fill='x', side=tk.TOP)
 
 
+
 class Window(tk.Tk):
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
         pygame.mixer.init()
-        tk.Tk.iconbitmap(self, default="download.ico")
+        tk.Tk.iconbitmap(self, default=resource_path("download.ico"))
         tk.Tk.wm_title(self, "Youtube Music Downloader")
         self.geometry("940x700")
 
@@ -284,6 +294,7 @@ class DownloadPage(ttk.Frame):
         # using search key to search song in spotify
         print("Searching q: " + q)
         song_info = spotiApi.get_first_search(q)
+        print('here')
 
         # set the title as youtube video name if not found searching in spotify
         if song_info['name'].strip() == "":

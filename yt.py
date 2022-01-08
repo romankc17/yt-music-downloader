@@ -2,7 +2,8 @@ import requests
 from pytube import YouTube, Playlist
 import re
 import eyed3
-from moviepy.editor import *
+import os
+from moviepy.audio.io.AudioFileClip import AudioFileClip
 from spotifyApi import SpotifyApi
 
 spotifyApi = SpotifyApi()
@@ -75,7 +76,6 @@ class MusicDownloader:
             filename=self.validate_filename(title)+".mp3"
             os.rename(mp3_filename,os.path.join(self.path,filename))
             return os.path.join(self.path,filename)
-
         return os.path.join(self.path, title + ".mp3")
 
     # return all the video urls from playlist

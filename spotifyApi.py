@@ -3,6 +3,7 @@ import re
 import requests
 
 from geniusApi import GeniusApi
+from secretKeys import spotify_keys
 
 geniusApi = GeniusApi()
 
@@ -12,8 +13,8 @@ Extract the song info from the spotify Api
 class SpotifyApi:
     def __init__(self):
         # Authorization
-        self.client_id = '3757c5b2008e42a2bf99ce18fa147d90'
-        self.client_secret = '5fe13571df374ad5a5936fa7cf97ef6b'
+        self.client_id = spotify_keys.CLIENT_ID
+        self.client_secret = spotify_keys.CLIENT_SECRET
 
         self.base_url = 'https://api.spotify.com'
         self.headers = {
@@ -97,8 +98,6 @@ class SpotifyApi:
         else:
             foo(ytTitle)
         return keys
-        q = ' '.join(keys)
-        return q
 
     def search(self, q):
         search_endpoint = self.base_url + "/v1/search"
@@ -151,7 +150,6 @@ class SpotifyApi:
             'duration': result['duration_ms'] / 60,
             'release_date': result['album']['release_date'],
             'lyrics': lyrics
-
         }
 
     def get_lyrics(self, name, album_artists):
@@ -166,7 +164,7 @@ class SpotifyApi:
             artist = ' and '.join(album_artists)
         elif len(album_artists) > 2:
             artist = ' '.join(album_artists[:-1]) + ' and ' + album_artists[-1]
-
+        print('here in get lyrics')
         lyrics = geniusApi.get_lyrics(artist, title)
 
         return lyrics

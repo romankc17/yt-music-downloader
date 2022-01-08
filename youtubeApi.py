@@ -1,7 +1,10 @@
-API_KEY = 'AIzaSyDPGSStUEhoGIuhylVuK28rZk2c4QntIwU'
+
 from googleapiclient.discovery import build
 import json
 
+from secretKeys import youtube_keys
+
+API_KEY = youtube_keys.API_KEY
 
 class YoutubeApi:
     def __init__(self):
@@ -36,7 +39,6 @@ class YoutubeApi:
             'channelTitle':snippet['channelTitle'],
             'viewCount':statistics['viewCount'],
             'likeCount':statistics['likeCount'],
-            'dislikeCount':statistics['dislikeCount'],
             'commentCount':statistics['commentCount']
         }
 
