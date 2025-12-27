@@ -1,4 +1,12 @@
 
+import importlib.metadata as importlib_metadata
+
+if not hasattr(importlib_metadata, "packages_distributions"):
+    def _packages_distributions():
+        return {}
+
+    importlib_metadata.packages_distributions = _packages_distributions
+
 from googleapiclient.discovery import build
 import json
 
@@ -8,7 +16,7 @@ API_KEY = youtube_keys.API_KEY
 
 class YoutubeApi:
     def __init__(self):
-        self.youtube = build('Youtube', 'v3', developerKey=API_KEY)
+        self.youtube = build('youtube', 'v3', developerKey=API_KEY)
 
     # method to search youtube videos
     def search(self, q, maxResutls=10):
@@ -28,7 +36,10 @@ class YoutubeApi:
             id=video_id,
         )
         response = request.execute()
-        item = response['items'][0]
+        items = response.get('items', [])
+        if not items:
+            return None
+        item = items[0]
         snippet = item['snippet']
         statistics=item['statistics']
         thumbnails = snippet['thumbnails']
@@ -37,9 +48,9 @@ class YoutubeApi:
             'description': snippet['description'],
             'thumbnails':snippet['thumbnails'],
             'channelTitle':snippet['channelTitle'],
-            'viewCount':statistics['viewCount'],
-            'likeCount':statistics['likeCount'],
-            'commentCount':statistics['commentCount']
+            'viewCount': statistics.get('viewCount', '0'),
+            'likeCount': statistics.get('likeCount', '0'),
+            'commentCount': statistics.get('commentCount', '0')
         }
 
 if __name__ == '__main__':

@@ -1,28 +1,28 @@
 import requests
-from pytube import YouTube, Playlist
+try:
+    from pytubefix import YouTube, Playlist
+except Exception:
+    from pytube import YouTube, Playlist
 import re
 import eyed3
 import os
 from moviepy.audio.io.AudioFileClip import AudioFileClip
-from spotifyApi import SpotifyApi
-
-spotifyApi = SpotifyApi()
-
 from youtubeApi import YoutubeApi
-
-youtube = YoutubeApi()
 
 
 class MusicDownloader:
-    def __init__(self):
+    def __init__(self, download_dir=None, youtube_api=None):
         homedir = os.path.expanduser('~')
-        self.path = os.path.join(homedir, "Music\\YtMusics")
+        default_dir = os.path.join(homedir, "Music", "YtMusics")
+        self.path = download_dir or default_dir
+        os.makedirs(self.path, exist_ok=True)
+        self.youtube = youtube_api or YoutubeApi()
 
         self.title = ''
 
     def link_type(self,url):
         video_id_pattern = re.compile(r"(v=|/)([a-zA-Z0-9-_]{11})")
-        playlist_id_pattern = re.compile(r"list=([a-zA-Z0-9-_]{3,10})")
+        playlist_id_pattern = re.compile(r"list=([a-zA-Z0-9-_]{10,})")
 
         video_match = video_id_pattern.findall(url)
         playlist_match = playlist_id_pattern.findall(url)
@@ -41,26 +41,31 @@ class MusicDownloader:
             return {'type': 0}
 
     def get_title(self, video_id):
-        self.title = youtube.video_info(video_id)['title']
+        self.title = self.youtube.video_info(video_id)['title']
         return self.title
 
     def mp4_to_mp3(self, video_file, audio_file):
-        mp4 = AudioFileClip(os.path.join(self.path, video_file))
-        mp3 = mp4.write_audiofile(audio_file)
+        video_path = video_file
+        if not os.path.isabs(video_path):
+            video_path = os.path.join(self.path, video_path)
+        mp4 = AudioFileClip(video_path)
+        mp4.write_audiofile(audio_file)
+        mp4.close()
 
         # deleting mp4
-        os.remove(os.path.join(self.path, video_file))
+        os.remove(video_path)
 
-        return mp3
+        return audio_file
 
-    def validate_filename(self,filename):
-        invalid_characters=["#","<","$","%",">","&","*","{","?","}","/","\\","+","`","!","'","|",'"',"=","@"]
-        [filename.replace(i,"-") for i in invalid_characters]
-        if filename[0] in ['.','-']:
-            filename.replace(filename[0],'')
-        if len(filename)>31:
-            filename=filename[:31]
-        return filename
+    def validate_filename(self, filename):
+        invalid_characters = ["#", "<", "$", "%", ">", "&", "*", "{", "?", "}", "/", "\\", "+", "`", "!", "'", "|", '"', "=", "@"]
+        for ch in invalid_characters:
+            filename = filename.replace(ch, "-")
+        if filename and filename[0] in [".", "-"]:
+            filename = filename[1:]
+        if len(filename) > 31:
+            filename = filename[:31]
+        return filename or "untitled"
 
     def downlod(self,url, title):
         print('******Parsing*******')
@@ -69,7 +74,7 @@ class MusicDownloader:
 
         audio_mp4 = yt.streams.filter(only_audio=True).first().download(self.path)
         mp3_filename = os.path.join(self.path, "music-" + str(len(title)) + ".mp3")
-        audio = self.mp4_to_mp3(audio_mp4, mp3_filename)
+        self.mp4_to_mp3(audio_mp4, mp3_filename)
         try:
             os.rename(mp3_filename, os.path.join(self.path, title + ".mp3"))
         except OSError:
@@ -85,6 +90,8 @@ class MusicDownloader:
 
     def set_metadata(self, fileName, song_info):
         audioFile = eyed3.load(fileName)
+        if audioFile.tag is None:
+            audioFile.initTag()
 
         title = song_info['name']
         album_name = song_info['album_name']
@@ -111,4 +118,4 @@ class MusicDownloader:
 
 if __name__ == '__main__':
     url = 'https://youtu.be/9n42tHMWqo'
-    obj = MusicDownloader(url)
+    obj = MusicDownloader()

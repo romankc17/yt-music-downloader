@@ -14,7 +14,7 @@ class GeniusApi():
         self.base_url = 'https://api.genius.com'
 
     def response(self, endpoint,**kwargs):
-        response = requests.get(self.base_url + endpoint, headers=headers)
+        response = requests.get(self.base_url + endpoint, headers=self.headers)
         return response
 
     def search(self,q):

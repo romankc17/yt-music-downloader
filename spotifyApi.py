@@ -17,9 +17,13 @@ class SpotifyApi:
         self.client_secret = spotify_keys.CLIENT_SECRET
 
         self.base_url = 'https://api.spotify.com'
-        self.headers = {
-            "Authorization": "Bearer " + self.getToken()
-        }
+        self.headers = None
+
+    def _ensure_headers(self):
+        if self.headers is None:
+            self.headers = {
+                "Authorization": "Bearer " + self.getToken()
+            }
 
     def getToken(self):
         client_creds = f"{self.client_id}:{self.client_secret}"
@@ -100,6 +104,7 @@ class SpotifyApi:
         return keys
 
     def search(self, q):
+        self._ensure_headers()
         search_endpoint = self.base_url + "/v1/search"
         params = {
             'q': q,
@@ -113,14 +118,14 @@ class SpotifyApi:
         if not items:
             return {
                 'album_name': '',
-                'album_artists': '',
-                'images': '',
-                'artists': '',
+                'album_artists': [],
+                'images': {'high': {'url': ''}, 'low': {'url': ''}},
+                'artists': [],
                 'name': "",
                 'album_type': '',
                 'artist_url': '',
                 'track_num': '',
-                'duration': '',
+                'duration': 0,
                 'release_date': '',
                 'lyrics': ''
             }
@@ -147,7 +152,7 @@ class SpotifyApi:
             'album_type': result['album']['album_type'],
             'artist_url': result['album']['artists'][0]['external_urls'],
             'track_num': result['track_number'],
-            'duration': result['duration_ms'] / 60,
+            'duration': result['duration_ms'] / 1000,
             'release_date': result['album']['release_date'],
             'lyrics': lyrics
         }

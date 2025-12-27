@@ -1,4 +1,6 @@
 import time
+import os
+import sys
 import tkinter  as tk
 from io import BytesIO
 from os import listdir
@@ -7,6 +9,7 @@ from tkinter import font as tkFont
 
 import PIL
 import pyperclip
+import requests
 import threading
 
 lock = threading.Lock()
@@ -20,15 +23,14 @@ from youtubeApi import YoutubeApi
 
 youtubeApi = YoutubeApi()
 musicDownloader = MusicDownloader()
-
-spotiApi = SpotifyApi()
+spotiApi = None
 
 MAX_FONT = ("Verdana", 18)
 LARGE_FONT = ("Verdana", 12)
 NORM_FONT = ("Helvetica", 10)
 SMALL_FONT = ("Helvetica", 8)
 
-PATH = 'C:/Users/roman/Music/YtMusics'
+PATH = musicDownloader.path
 
 
 
@@ -38,7 +40,11 @@ def list_files():
 
 def resize_image(path, width, height):
     image = Image.open(path)
-    image = image.resize((width, height), Image.ANTIALIAS)  ## The (40, 40) is (height, width)
+    try:
+        resample = Image.Resampling.LANCZOS
+    except AttributeError:
+        resample = Image.ANTIALIAS
+    image = image.resize((width, height), resample)  ## The (40, 40) is (height, width)
     image = ImageTk.PhotoImage(image)
     return image
 
@@ -104,8 +110,15 @@ def navBar(frame):
 class Window(tk.Tk):
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
-        pygame.mixer.init()
-        tk.Tk.iconbitmap(self, default=resource_path("download.ico"))
+        if os.environ.get("YTMUSIC_ENABLE_AUDIO") == "1":
+            try:
+                pygame.mixer.init()
+            except Exception as exc:
+                print(f"Audio disabled: {exc}")
+        try:
+            tk.Tk.iconbitmap(self, default=resource_path("download.ico"))
+        except Exception:
+            pass
         tk.Tk.wm_title(self, "Youtube Music Downloader")
         self.geometry("940x700")
 
@@ -174,8 +187,7 @@ class DownloadPage(ttk.Frame):
         self.lowerFrame.pack(side='bottom', fill='both', expand=True, )
         self.createDownloadFrame()
 
-        pasteBtn = ttk.Button(self.upperFrame, text='Paste',
-                              command=lambda: threading.Thread(target=self.parseUrl).start())
+        pasteBtn = ttk.Button(self.upperFrame, text='Paste', command=self.parseUrl)
         pasteBtn.pack(side='left', padx=5, ipady=3)
 
         self.i = 100
@@ -207,6 +219,7 @@ class DownloadPage(ttk.Frame):
 
         canvas.configure(yscrollcommand=vs.set)
         canvas.configure(scrollregion=canvas.bbox("all"))
+        self.canvas = canvas
         self.downloadFrame = downloadFrame
 
     def retrievingText(self, master):
@@ -285,9 +298,15 @@ class DownloadPage(ttk.Frame):
 
         # getting video info from youtube api
         video_info = youtubeApi.video_info(video_id)
+        if not video_info:
+            self.invalidPopUp("Video not found or unavailable.")
+            return
         yt_title = video_info['title']
 
         # Extract the search keys from yt title
+        global spotiApi
+        if spotiApi is None:
+            spotiApi = SpotifyApi()
         keys = spotiApi.purify_ytTitle(yt_title)
         q = ' '.join(keys)
 
@@ -311,9 +330,19 @@ class DownloadPage(ttk.Frame):
         bar = self.song_info_frame(f, yt_title, song_info)
 
         filename = ' X '.join(song_info['artists']) + " - " + song_info['name']
-        audio_file = musicDownloader.downlod(url, filename)
+        try:
+            audio_file = musicDownloader.downlod(url, filename)
+        except Exception as exc:
+            print(f"Download failed: {exc}")
+            self.invalidPopUp("Download failed. Try another URL or update pytube.")
+            return
         bar['value'] += 50
-        musicDownloader.set_metadata(audio_file, song_info)
+        try:
+            musicDownloader.set_metadata(audio_file, song_info)
+        except Exception as exc:
+            print(f"Metadata failed: {exc}")
+            self.invalidPopUp("Metadata write failed. The file downloaded without tags.")
+            return
         bar['value'] += 50
 
     def parseUrl(self):
@@ -334,15 +363,15 @@ class DownloadPage(ttk.Frame):
         # if the url is for playlist only
         elif link_type['type'] == 3:
             print("Downloading Playlist")
-            urls = musicDownloader.get_playlist_urls(url)
-            tl = []
+            try:
+                urls = musicDownloader.get_playlist_urls(url)
+            except Exception as exc:
+                print(f"Playlist fetch failed: {exc}")
+                self.invalidPopUp("Playlist not found or unavailable.")
+                return
             for url in urls:
                 video_id = musicDownloader.link_type(url)['video_id']
-                t = threading.Thread(target=lambda: self.downloadMusic(url, video_id))
-                t.start()
-                tl.append(t)
-            for t in tl:
-                t.join()
+                self.downloadMusic(url, video_id)
 
         else:
             video_id = link_type['video_id']
@@ -374,21 +403,19 @@ class DownloadPage(ttk.Frame):
     def dPorA(self, popup, opt, video_id, playlist_id):
         popup.destroy()
         if opt == 'p':
-            url = 'youtube.com/playlist?list=' + playlist_id
-            url = 'https://youtu.be/6tsu2oeZJgo?list=PLunpsO_IVuepyV8k1II8gUqRn8qv4fLJB'
+            url = f'https://www.youtube.com/playlist?list={playlist_id}'
             print(url)
-            urls = musicDownloader.get_playlist_urls(url)
-            tl = []
-            print(urls)
+            try:
+                urls = musicDownloader.get_playlist_urls(url)
+            except Exception as exc:
+                print(f"Playlist fetch failed: {exc}")
+                self.invalidPopUp("Playlist not found or unavailable.")
+                return
             for url in urls:
                 video_id = musicDownloader.link_type(url)['video_id']
-                t = threading.Thread(target=lambda: self.downloadMusic(url, video_id))
-                t.start()
-                tl.append(t)
-            for t in tl:
-                t.join()
+                self.downloadMusic(url, video_id)
         else:
-            url = 'youtube.com/' + video_id
+            url = f'https://www.youtube.com/watch?v={video_id}'
             self.downloadMusic(url, video_id)
             return
 
